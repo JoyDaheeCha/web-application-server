@@ -9,6 +9,7 @@ import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -30,26 +31,24 @@ public class RequestHandler extends Thread {
             // 1. request 받기
             line = br.readLine();
             log.debug("request line : {}", line);
-
             if(line == null) {
                 return;
             }
-
-
             String[] tokens = line.split(" ");
-
-            while (!line.equals("")) {
-                line = br.readLine();
-                log.debug("Header : {}", line);
-            }
-
             DataOutputStream dos = new DataOutputStream(out);
             String url = tokens[1];
 
-            if(url.startsWith("/user/create")) {
-                int index = url.indexOf("?");
-                String params = url.substring(index+1);
+            int contentLength = 0;
+            while (!line.equals("")) {
+                line = br.readLine();
+                if(line.contains("Content-Length")) {
+                    contentLength = Integer.parseInt(line.split(": ")[1]);
+                }
+                log.debug("Header : {}", line);
+            }
 
+            if(url.startsWith("/user/create")) {
+                String params = IOUtils.readData(br, contentLength);
                 Map<String,String> paramsMap = HttpRequestUtils.parseQueryString(params);
 
                 User user = new User( paramsMap.get("userId"),
