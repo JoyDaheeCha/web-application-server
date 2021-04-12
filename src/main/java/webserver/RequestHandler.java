@@ -56,6 +56,9 @@ public class RequestHandler extends Thread {
                                       paramsMap.get("name"),
                                       paramsMap.get("email"));
                 log.debug("user : {}", user);
+
+                response302Header(dos, "/index.html");
+
             }
             else {
                 byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
@@ -63,6 +66,16 @@ public class RequestHandler extends Thread {
                 responseBody(dos, body);
             }
 
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response302Header(DataOutputStream dos, String url) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location:" + url + "\r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
