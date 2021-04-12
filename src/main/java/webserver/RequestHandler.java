@@ -27,18 +27,20 @@ public class RequestHandler extends Thread {
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
             String line = "";
 
+            // 1. request 받기
             line = br.readLine();
+            log.debug("request line : {}", line);
 
             if(line == null) {
                 return;
             }
 
+
             String[] tokens = line.split(" ");
-            System.out.println(line);
 
             while (!line.equals("")) {
                 line = br.readLine();
-                System.out.println(line);
+                log.debug("Header : {}", line);
             }
 
             DataOutputStream dos = new DataOutputStream(out);
