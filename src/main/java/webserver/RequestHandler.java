@@ -2,7 +2,10 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import db.DataBase;
@@ -40,10 +43,15 @@ public class RequestHandler extends Thread {
             String url = tokens[1];
 
             int contentLength = 0;
+            Map<String, String> cookieMap = new HashMap<>();
+
             while (!line.equals("")) {
                 line = br.readLine();
                 if(line.contains("Content-Length")) {
                     contentLength = Integer.parseInt(line.split(": ")[1]);
+                }
+                else if(line.contains("Cookie")) {
+                    cookieMap = HttpRequestUtils.parseCookies(line.split(": ")[1]);
                 }
                 log.debug("Header : {}", line);
             }
@@ -77,6 +85,30 @@ public class RequestHandler extends Thread {
                     // 로그인 실패
                     responseLoginFailHeader(dos, "/user/login_failed.html");
                 }
+            }
+            else if(url.equals("/user/list")) {
+                Boolean isLogined = Boolean.parseBoolean(cookieMap.get("logined"));
+
+                if (isLogined) {
+                    Collection<User> users = DataBase.findAll();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("<table border='1'>");
+                    for(User user : users) {
+                        sb.append("<tr>");
+                        sb.append("<td>" + user.getUserId() + "</td>");
+                        sb.append("<td>" + user.getName() + "</td>");
+                        sb.append("<td>" + user.getEmail() + "</td>");
+                        sb.append("</td>");
+                    }
+                    sb.append("</table>");
+
+                    byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                } else  {
+                    response302Header(dos, "/user/login.html");
+                }
+
             }
             else {
                 // /user/login.html , /user/form.html
