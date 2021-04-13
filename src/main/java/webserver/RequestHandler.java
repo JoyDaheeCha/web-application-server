@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.util.Map;
 
+import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,7 @@ public class RequestHandler extends Thread {
                 log.debug("Header : {}", line);
             }
 
-            if(url.startsWith("/user/create")) {
+            if(url.equals("/user/create")) {
                 String params = IOUtils.readData(br, contentLength);
                 Map<String,String> paramsMap = HttpRequestUtils.parseQueryString(params);
 
@@ -57,15 +58,57 @@ public class RequestHandler extends Thread {
                                       paramsMap.get("email"));
                 log.debug("user : {}", user);
 
-                response302Header(dos, "/index.html");
+                DataBase.addUser(user);
 
+                response302Header(dos, "/index.html");
+            }
+            else if(url.equals("/user/login")) {
+                String params = IOUtils.readData(br, contentLength);
+                Map<String,String> paramsMap = HttpRequestUtils.parseQueryString(params);
+
+                // 사용자 계정 얻기
+                String userId = paramsMap.get("userId");
+                User user = DataBase.findUserById(userId);
+
+                // 로그인 성공
+                if (user != null  && user.getPassword().equals(paramsMap.get("password"))) {
+                    responseLoginSucceedHeader(dos, "/index.html");
+                } else {
+                    // 로그인 실패
+                    responseLoginFailHeader(dos, "/user/login_failed.html");
+                }
             }
             else {
+                // /user/login.html , /user/form.html
                 byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
 
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void responseLoginFailHeader(DataOutputStream dos, String url) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Content-Type: text/html \r\n");
+            dos.writeBytes("Location:" + url + "\r\n");
+            dos.writeBytes("Set-Cookie: logined=false \r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void responseLoginSucceedHeader(DataOutputStream dos, String url) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Content-Type: text/html \r\n");
+            dos.writeBytes("Location:" + url + "\r\n");
+            dos.writeBytes("Set-Cookie: logined=true \r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
