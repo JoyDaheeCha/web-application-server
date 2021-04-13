@@ -110,13 +110,27 @@ public class RequestHandler extends Thread {
                 }
 
             }
+            else if (url.endsWith(".css")) {
+                byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+                responseCSSHeader(dos);
+                responseBody(dos, body);
+            }
             else {
-                // /user/login.html , /user/form.html
                 byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
 
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void responseCSSHeader(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css \r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
