@@ -1,11 +1,10 @@
 package webserver;
 
-import java.io.*;
-import java.net.Socket;
-import java.nio.file.Files;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.net.Socket;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -22,16 +21,12 @@ public class RequestHandler extends Thread {
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
 
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-            String line = "";
+            String line = br.readLine();
+            log.debug("request line : {}", line);
 
-            line = br.readLine();
-
-            if(line == null) {
+            if (line == null) {
                 return;
             }
-
-            String[] tokens = line.split(" ");
-            System.out.println(line);
 
             while (!line.equals("")) {
                 line = br.readLine();
@@ -39,9 +34,7 @@ public class RequestHandler extends Thread {
             }
 
             DataOutputStream dos = new DataOutputStream(out);
-            String url = tokens[1];
-            byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-
+            byte[] body = "Hello World".getBytes();
             response200Header(dos, body.length);
             responseBody(dos, body);
 
