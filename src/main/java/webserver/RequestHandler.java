@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -28,13 +29,15 @@ public class RequestHandler extends Thread {
                 return;
             }
 
+            String[] tokens = line.split(" ");
+
             while (!line.equals("")) {
                 line = br.readLine();
-                System.out.println(line);
+                log.debug("header : {}", line);
             }
 
             DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = "Hello World".getBytes();
+            byte[] body = Files.readAllBytes(new File("./webapp" + tokens[1]).toPath());
             response200Header(dos, body.length);
             responseBody(dos, body);
 
