@@ -4,6 +4,7 @@ import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 import java.io.*;
 import java.net.Socket;
@@ -33,18 +34,21 @@ public class RequestHandler extends Thread {
             }
 
             String[] tokens = line.split(" ");
+            int contentLength = 0;
 
             while (!line.equals("")) {
-                line = br.readLine();
                 log.debug("header : {}", line);
+                line = br.readLine();
+                if (line.contains("Content-Length")) {
+                    contentLength = getContentLength(line);
+                }
             }
 
             String url = tokens[1];
 
             if (url.startsWith("/user/create")) {
-                int index = url.indexOf("?");
-                String queryString = url.substring(index + 1);
-                Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
+                String body = IOUtils.readData(br, contentLength);
+                Map<String, String> params = HttpRequestUtils.parseQueryString(body);
                 User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
                 log.debug("User: {}", user);
             } else {
@@ -57,6 +61,11 @@ public class RequestHandler extends Thread {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private int getContentLength(String line) {
+        String[] headerTokens = line.split(":");
+        return Integer.parseInt(headerTokens[1].trim());
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
