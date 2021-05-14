@@ -1,0 +1,7 @@
+GET /user/create?userId=jojo&password=1234&name=DaHee HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+Connection-Length: 46
+Content-Type: application/x-www-form-unlencoded
+Accept: */*
+
