@@ -1,6 +1,9 @@
+package util;
+
+import http.HttpMethod;
+import http.HttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.HttpRequestUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +23,7 @@ public class RequestLine {
         }
 
         method = HttpMethod.valueOf(tokens[0]);
-        if (method == HttpMethod.POST) {
+        if (method.isPost()) {
             path = tokens[1];
             return;
         }

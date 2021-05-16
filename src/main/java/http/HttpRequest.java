@@ -1,7 +1,10 @@
+package http;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
 import util.IOUtils;
+import util.RequestLine;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,7 +38,7 @@ public class HttpRequest {
                 line = br.readLine();
             }
 
-            if (getMethod() == HttpMethod.POST) {
+            if (getMethod().isPost()) {
                 String body = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
                 params = HttpRequestUtils.parseQueryString(body);
             } else {
