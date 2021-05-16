@@ -1,25 +1,17 @@
 package webserver;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import db.DataBase;
+import http.HttpRequest;
+import model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import util.HttpRequestUtils;
+
+import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.util.Collection;
 import java.util.Map;
-
-import model.User;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import util.HttpRequestUtils;
-import util.IOUtils;
-import db.DataBase;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -34,47 +26,25 @@ public class RequestHandler extends Thread {
         log.debug("New Client Connect! Connected IP : {}, Port : {}", connection.getInetAddress(),
                 connection.getPort());
 
-        try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-            String line = br.readLine();
-            if (line == null) {
-                return;
-            }
+        try (InputStream in = connection.getInputStream();
+             OutputStream out = connection.getOutputStream()) {
 
-            log.debug("request line : {}", line);
-            String[] tokens = line.split(" ");
+            HttpRequest request = new HttpRequest(in);
+            String path = getDefaultPath(request.getPath());
 
-            int contentLength = 0;
-            boolean logined = false;
-            while (!line.equals("")) {
-                line = br.readLine();
-                log.debug("header : {}", line);
-
-                if (line.contains("Content-Length")) {
-                    contentLength = getContentLength(line);
-                }
-
-                if (line.contains("Cookie")) {
-                    logined = isLogin(line);
-                }
-            }
-
-            String url = getDefaultUrl(tokens);
-            if ("/user/create".equals(url)) {
-                String body = IOUtils.readData(br, contentLength);
-                Map<String, String> params = HttpRequestUtils.parseQueryString(body);
-                User user = new User(params.get("userId"), params.get("password"), params.get("name"),
-                        params.get("email"));
+            if ("/user/create".equals(path)) {
+                User user = new User(request.getParameter("userId"),
+                        request.getParameter("password"),
+                        request.getParameter("name"),
+                        request.getParameter("email"));
                 log.debug("user : {}", user);
                 DataBase.addUser(user);
                 DataOutputStream dos = new DataOutputStream(out);
                 response302Header(dos);
-            } else if ("/user/login".equals(url)) {
-                String body = IOUtils.readData(br, contentLength);
-                Map<String, String> params = HttpRequestUtils.parseQueryString(body);
-                User user = DataBase.findUserById(params.get("userId"));
+            } else if ("/user/login".equals(path)) {
+                User user = DataBase.findUserById(request.getParameter("userId"));
                 if (user != null) {
-                    if (user.login(params.get("password"))) {
+                    if (user.login(request.getParameter("password"))) {
                         DataOutputStream dos = new DataOutputStream(out);
                         response302LoginSuccessHeader(dos);
                     } else {
@@ -83,8 +53,8 @@ public class RequestHandler extends Thread {
                 } else {
                     responseResource(out, "/user/login_failed.html");
                 }
-            } else if ("/user/list".equals(url)) {
-                if (!logined) {
+            } else if ("/user/list".equals(path)) {
+                if (!isLogin(request.getHeader("Cookie"))) {
                     responseResource(out, "/user/login.html");
                     return;
                 }
@@ -104,19 +74,18 @@ public class RequestHandler extends Thread {
                 DataOutputStream dos = new DataOutputStream(out);
                 response200Header(dos, body.length);
                 responseBody(dos, body);
-            } else if (url.endsWith(".css")) {
-                responseCssResource(out, url);
+            } else if (path.endsWith(".css")) {
+                responseCssResource(out, path);
             } else {
-                responseResource(out, url);
+                responseResource(out, path);
             }
         } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
 
-    private boolean isLogin(String line) {
-        String[] headerTokens = line.split(":");
-        Map<String, String> cookies = HttpRequestUtils.parseCookies(headerTokens[1].trim());
+    private boolean isLogin(String cookieValue) {
+        Map<String, String> cookies = HttpRequestUtils.parseCookies(cookieValue);
         String value = cookies.get("logined");
         if (value == null) {
             return false;
@@ -138,13 +107,7 @@ public class RequestHandler extends Thread {
         responseBody(dos, body);
     }
 
-    private int getContentLength(String line) {
-        String[] headerTokens = line.split(":");
-        return Integer.parseInt(headerTokens[1].trim());
-    }
-
-    private String getDefaultUrl(String[] tokens) {
-        String url = tokens[1];
+    private String getDefaultPath(String url) {
         if (url.equals("/")) {
             url = "/index.html";
         }
