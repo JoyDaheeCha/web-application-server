@@ -13,8 +13,6 @@ import java.util.Map;
 public class HttpRequest {
     private static final Logger log = LoggerFactory.getLogger(HttpRequest.class);
 
-    private String method;
-    private String path;
     private Map<String, String> headers = new HashMap<>();
     private Map<String, String> params = new HashMap<>();
     private RequestLine requestLine;
@@ -37,7 +35,7 @@ public class HttpRequest {
                 line = br.readLine();
             }
 
-            if ("POST".equals(method)) {
+            if (getMethod() == HttpMethod.POST) {
                 String body = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
                 params = HttpRequestUtils.parseQueryString(body);
             } else {
@@ -49,7 +47,7 @@ public class HttpRequest {
         }
     }
 
-    public String getMethod() {
+    public HttpMethod getMethod() {
         return requestLine.getMethod();
     }
 
@@ -61,8 +59,8 @@ public class HttpRequest {
         return headers.get(name);
     }
 
-    public Map<String, String> getParameter(String name) {
-        return requestLine.getParams();
+    public String getParameter(String name) {
+        return params.get(name);
     }
 
 
