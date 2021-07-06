@@ -2,6 +2,7 @@ package webserver;
 
 import db.DataBase;
 import http.HttpRequest;
+import http.HttpResponse;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,8 @@ public class RequestHandler extends Thread {
              OutputStream out = connection.getOutputStream()) {
 
             HttpRequest request = new HttpRequest(in);
+            HttpResponse response = new HttpResponse(out);
+
             String path = getDefaultPath(request.getPath());
 
             if ("/user/create".equals(path)) {
@@ -37,23 +40,22 @@ public class RequestHandler extends Thread {
                         request.getParameter("email"));
                 log.debug("user : {}", user);
                 DataBase.addUser(user);
-                DataOutputStream dos = new DataOutputStream(out);
-                response302Header(dos);
+                response.sendRedirect("./index.html");
             } else if ("/user/login".equals(path)) {
                 User user = DataBase.findUserById(request.getParameter("userId"));
                 if (user != null) {
                     if (user.login(request.getParameter("password"))) {
-                        DataOutputStream dos = new DataOutputStream(out);
-                        response302LoginSuccessHeader(dos);
+                        response.addHeader("Set-Cookie", "logined=true");
+                        response.sendRedirect("./index.html");
                     } else {
-                        responseResource(out, "/user/login_failed.html");
+                        response.sendRedirect("/user/login_failed.html");
                     }
                 } else {
-                    responseResource(out, "/user/login_failed.html");
+                    response.sendRedirect("/user/login_failed.html");
                 }
             } else if ("/user/list".equals(path)) {
                 if (!request.isLogin()) {
-                    responseResource(out, "/user/login.html");
+                    response.sendRedirect("/user/login.html");
                     return;
                 }
 
@@ -68,14 +70,9 @@ public class RequestHandler extends Thread {
                     sb.append("</tr>");
                 }
                 sb.append("</table>");
-                byte[] body = sb.toString().getBytes();
-                DataOutputStream dos = new DataOutputStream(out);
-                response200Header(dos, body.length);
-                responseBody(dos, body);
-            } else if (path.endsWith(".css")) {
-                responseCssResource(out, path);
+                response.forwardBody(sb.toString());
             } else {
-                responseResource(out, path);
+                response.forward(path);
             }
         } catch (IOException e) {
             log.error(e.getMessage());

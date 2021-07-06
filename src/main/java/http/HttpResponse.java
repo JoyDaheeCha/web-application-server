@@ -38,7 +38,7 @@ public class HttpResponse {
                 headers.put("Content-Type", "text/html; charset=utf-8");
             }
             headers.put("Content-Length", body.length + "");
-            response200Header();
+            response200Header(body.length);
             responseBody(body);
         } catch (IOException e) {
             log.error(e.getMessage());
@@ -46,8 +46,12 @@ public class HttpResponse {
     }
 
     // 왜 적는지 모르겠지만 일단 선언만...
-    public void forwardBody() {
-
+    public void forwardBody(String body) {
+        byte[] contents = body.getBytes();
+        headers.put("Content-Type", "text/html;charset=utf-8");
+        headers.put("Content-Length", contents.length + "");
+        response200Header(contents.length); // 사용하지 않을 length를 왜 여기로 넘기는걸까?
+        responseBody(contents);
     }
 
     public void sendRedirect(String redirectUrl) {
@@ -61,7 +65,7 @@ public class HttpResponse {
         }
     }
 
-    private void response200Header() {
+    private void response200Header(int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
             processHeaders();
