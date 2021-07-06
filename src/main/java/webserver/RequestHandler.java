@@ -35,49 +35,61 @@ public class RequestHandler extends Thread {
             String path = getDefaultPath(request.getPath());
 
             if ("/user/create".equals(path)) {
-                User user = new User(request.getParameter("userId"),
-                        request.getParameter("password"),
-                        request.getParameter("name"),
-                        request.getParameter("email"));
-                log.debug("user : {}", user);
-                DataBase.addUser(user);
-                response.sendRedirect("./index.html");
+                createUser(request, response);
             } else if ("/user/login".equals(path)) {
-                User user = DataBase.findUserById(request.getParameter("userId"));
-                if (user != null) {
-                    if (user.login(request.getParameter("password"))) {
-                        response.addHeader("Set-Cookie", "logined=true");
-                        response.sendRedirect("./index.html");
-                    } else {
-                        response.sendRedirect("/user/login_failed.html");
-                    }
-                } else {
-                    response.sendRedirect("/user/login_failed.html");
-                }
+                login(request, response);
             } else if ("/user/list".equals(path)) {
-                if (!request.isLogin()) {
-                    response.sendRedirect("/user/login.html");
-                    return;
-                }
-
-                Collection<User> users = DataBase.findAll();
-                StringBuilder sb = new StringBuilder();
-                sb.append("<table border='1'>");
-                for (User user : users) {
-                    sb.append("<tr>");
-                    sb.append("<td>" + user.getUserId() + "</td>");
-                    sb.append("<td>" + user.getName() + "</td>");
-                    sb.append("<td>" + user.getEmail() + "</td>");
-                    sb.append("</tr>");
-                }
-                sb.append("</table>");
-                response.forwardBody(sb.toString());
+                listUser(request, response);
             } else {
                 response.forward(path);
             }
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private void listUser(HttpRequest request, HttpResponse response) {
+        if (!request.isLogin()) {
+            response.sendRedirect("/user/login.html");
+            return;
+        }
+
+        Collection<User> users = DataBase.findAll();
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table border='1'>");
+        for (User user : users) {
+            sb.append("<tr>");
+            sb.append("<td>" + user.getUserId() + "</td>");
+            sb.append("<td>" + user.getName() + "</td>");
+            sb.append("<td>" + user.getEmail() + "</td>");
+            sb.append("</tr>");
+        }
+        sb.append("</table>");
+        response.forwardBody(sb.toString());
+    }
+
+    private void login(HttpRequest request, HttpResponse response) {
+        User user = DataBase.findUserById(request.getParameter("userId"));
+        if (user != null) {
+            if (user.login(request.getParameter("password"))) {
+                response.addHeader("Set-Cookie", "logined=true");
+                response.sendRedirect("./index.html");
+            } else {
+                response.sendRedirect("/user/login_failed.html");
+            }
+        } else {
+            response.sendRedirect("/user/login_failed.html");
+        }
+    }
+
+    private void createUser(HttpRequest request, HttpResponse response) {
+        User user = new User(request.getParameter("userId"),
+                request.getParameter("password"),
+                request.getParameter("name"),
+                request.getParameter("email"));
+        log.debug("user : {}", user);
+        DataBase.addUser(user);
+        response.sendRedirect("./index.html");
     }
 
     private String getDefaultPath(String url) {
