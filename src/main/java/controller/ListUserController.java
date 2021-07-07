@@ -1,4 +1,4 @@
-package webserver;
+package controller;
 
 import db.DataBase;
 import http.HttpRequest;
@@ -7,9 +7,9 @@ import model.User;
 
 import java.util.Collection;
 
-public class ListUserController implements Controller {
+public class ListUserController extends AbstractController {
     @Override
-    public void service(HttpRequest request, HttpResponse response) {
+    public void doGet(HttpRequest request, HttpResponse response) {
         if (!request.isLogin()) {
             response.sendRedirect("/user/login.html");
             return;
